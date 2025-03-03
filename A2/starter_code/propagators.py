@@ -48,7 +48,6 @@
         for gac we establish initial GAC by initializing the GAC queue
         with all constaints of the csp
 
-
       PROPAGATOR called with newly_instantiated_variable = a variable V
       PROCESSING REQUIRED:
          for plain backtracking we check all constraints with V (see csp method
@@ -77,18 +76,22 @@ def prop_BT(csp, newVar=None):
     '''Do plain backtracking propagation. That is, do no 
     propagation at all. Just check fully instantiated constraints'''
 
+    # At the root level, we can continue and nothing is pruned.
     if not newVar:
         return True, []
+    
+    # At the child level, we need to check if the new variable assignment
+    # Get all constraints where all variable within its scope is all assigned, that the new variable is involved.
+    
     for c in csp.get_cons_with_var(newVar):
-        if c.get_n_unasgn() == 0:
-            vals = []
-            vars = c.get_scope()
+        if c.get_n_unasgn() == 0: # If all variables are assigned for the constraint.
+            vars = c.get_scope() # Get all variables in the scope of the constraint.
+            vals = [] # 
             for var in vars:
-                vals.append(var.get_assigned_value())
-            if not c.check(vals):
+                vals.append(var.get_assigned_value()) # Get the assigned value of those assigned variables.
+            if not c.check(vals): # And check if they satisfy the constraint.
                 return False, []
     return True, []
-
 
 def prop_FC(csp, newVar=None):
     '''Do forward checking. That is check constraints with
@@ -96,7 +99,6 @@ def prop_FC(csp, newVar=None):
        track of all pruned variable,value pairs and return '''
     #IMPLEMENT
     return False, []
-
 
 def prop_GAC(csp, newVar=None):
     '''Do GAC propagation. If newVar is None we do initial GAC enforce 
