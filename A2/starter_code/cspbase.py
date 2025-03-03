@@ -256,11 +256,11 @@ class Constraint:
                     self.sup_tuples[(var,val)] = []
                 self.sup_tuples[(var,val)].append(t)
 
-    def get_scope(self):
+    def get_scope(self): # Get the list of scope of the constraint
         '''get list of variables the constraint is over'''
         return list(self.scope)
 
-    def check(self, vals):
+    def check(self, vals): # Check if the values satisfy the constraint
         '''Given list of values, one for each variable in the
            constraints scope, return true if and only if these value
            assignments satisfy the constraint by applying the
@@ -269,7 +269,7 @@ class Constraint:
            variables in the constraints scope'''
         return tuple(vals) in self.sat_tuples
 
-    def get_n_unasgn(self):
+    def get_n_unasgn(self): # Return the number of unassigned variables in the constraint's scope
         '''return the number of unassigned variables in the constraint's scope'''
         n = 0
         for v in self.scope:
@@ -277,7 +277,7 @@ class Constraint:
                 n = n + 1
         return n
 
-    def get_unasgn_vars(self): 
+    def get_unasgn_vars(self): # Return the list of unassigned variables in the constraint's scope
         '''return list of unassigned variables in constraint's scope. Note
            more expensive to get the list than to then number'''
         vs = []
@@ -286,7 +286,7 @@ class Constraint:
                 vs.append(v)
         return vs
 
-    def has_support(self, var, val):
+    def has_support(self, var, val): # Check if a variable value pair has a supporting tuple even after domain reduction
         '''Test if a variable value pair has a supporting tuple (a set
            of assignments satisfying the constraint where each value is
            still in the corresponding variables current domain
@@ -297,7 +297,7 @@ class Constraint:
                     return True
         return False
 
-    def tuple_is_valid(self, t):
+    def tuple_is_valid(self, t): # Check if each value in t is in corresponding variable (scope[i]) current domains
         '''Internal routine. Check if every value in tuple is still in
            corresponding variable domains'''
         for i, var in enumerate(self.scope):
@@ -305,7 +305,7 @@ class Constraint:
                 return False
         return True
 
-    def __str__(self):
+    def __str__(self): # Return the name of the constraint
         return("{}({})".format(self.name,[var.name for var in self.scope]))
 
 
@@ -320,7 +320,7 @@ class CSP:
        The variables of the CSP can be added later or on initialization.
        The constraints must be added later'''
 
-    def __init__(self, name, vars=[]):
+    def __init__(self, name, vars=[]): # Instantiate CSP: (name, all variables, all constriants, vars_to_cons) 
         '''create a CSP object. Specify a name (a string) and 
            optionally a set of variables'''
 
@@ -331,7 +331,7 @@ class CSP:
         for v in vars:
             self.add_var(v)
 
-    def add_var(self,v):
+    def add_var(self,v): # Add variable object to CSP while setting up an index to obtain the constraints over this variable
         '''Add variable object to CSP while setting up an index
            to obtain the constraints over this variable'''
         if not type(v) is Variable:
@@ -342,7 +342,7 @@ class CSP:
             self.vars.append(v)
             self.vars_to_cons[v] = []
 
-    def add_constraint(self,c):
+    def add_constraint(self,c): # Add constraint to CSP. All variables in the constraints scope must already have been added to the CSP
         '''Add constraint to CSP. Note that all variables in the 
            constraints scope must already have been added to the CSP'''
         if not type(c) is Constraint:
@@ -355,28 +355,28 @@ class CSP:
                 self.vars_to_cons[v].append(c)
             self.cons.append(c)
 
-    def get_all_cons(self):
+    def get_all_cons(self): # Return list of all constraints in the CSP
         '''return list of all constraints in the CSP'''
         return self.cons
         
-    def get_cons_with_var(self, var):
+    def get_cons_with_var(self, var): # Return list of constraints that include var in their scope
         '''return list of constraints that include var in their scope'''
         return list(self.vars_to_cons[var])
 
-    def get_all_vars(self):
+    def get_all_vars(self): # Return list of variables in the CSP
         '''return list of variables in the CSP'''
         return list(self.vars)
 
-    def get_all_unasgn_vars(self):
+    def get_all_unasgn_vars(self): # Return list of unassigned variables in the CSP
         '''return list of unassigned variables in the CSP'''
         return [v for v in self.vars if not v.is_assigned()]
 
-    def print_all(self):
+    def print_all(self): # Print the name, variables, and constraints of the CSP
         print("CSP", self.name)
         print("   Variables = ", self.vars)
         print("   Constraints = ", self.cons)
 
-    def print_soln(self):
+    def print_soln(self): # Print the name and assignments of the CSP
         print("CSP", self.name, " Assignments = ")
         for v in self.vars:
             print(v, " = ", v.get_assigned_value(), "    ", end='')
@@ -395,7 +395,7 @@ class BT:
        kind or propagator function to obtain plain backtracking
        forward-checking or gac'''
 
-    def __init__(self, csp):
+    def __init__(self, csp): # Instantiate BT: (CSP object, # var assignments, # val prunings, unassigned vars, TRACE, runtime)
         '''csp == CSP object specifying the CSP to be solved'''
 
         self.csp = csp
@@ -406,31 +406,31 @@ class BT:
         self.TRACE = False
         self.runtime = 0
 
-    def trace_on(self):
+    def trace_on(self): # Turn search trace on
         '''Turn search trace on'''
         self.TRACE = True
 
-    def trace_off(self):
+    def trace_off(self): # Turn search trace off
         '''Turn search trace off'''
         self.TRACE = False
 
-    def clear_stats(self):
+    def clear_stats(self): # Initialize nDecisions, nPrunings, and runtime
         '''Initialize counters'''
         self.nDecisions = 0
         self.nPrunings = 0
         self.runtime = 0
 
-    def print_stats(self):
+    def print_stats(self): # Print the number of variable assignments and value prunings made during search
         print("Search made {} variable assignments and pruned {} variable values".format(
             self.nDecisions, self.nPrunings))
 
-    def restoreValues(self,prunings):
+    def restoreValues(self,prunings): # Restore list of values to variable domains (each item in prunings is a pair (var, val))
         '''Restore list of values to variable domains
            each item in prunings is a pair (var, val)'''
         for var, val in prunings:
             var.unprune_value(val)
 
-    def restore_all_variable_domains(self):
+    def restore_all_variable_domains(self): # Restore all variable domains, unassign all assigned variables
         '''Reinitialize all variable domains'''
         if self.csp != None:
             for var in self.csp.vars:
@@ -438,11 +438,11 @@ class BT:
                     var.unassign()
                 var.restore_curdom()
 
-    def restoreUnasgnVar(self, var):
+    def restoreUnasgnVar(self, var): # Add variable back to list of unassigned vars
         '''Add variable back to list of unassigned vars'''
         self.unasgn_vars.append(var)
         
-    def bt_search(self,propagator,var_ord=None,val_ord=None):
+    def bt_search(self,propagator,var_ord=None,val_ord=None): # Root level BT search with specified propagator and var/val ordering heuristics
         '''Try to solve the CSP using specified propagator routine
 
            propagator == a function with the following template
@@ -485,7 +485,7 @@ class BT:
         stime = time.process_time()
 
         self.restore_all_variable_domains()
-        
+
         self.unasgn_vars = []
         for v in self.csp.vars:
             if not v.is_assigned():
@@ -519,7 +519,7 @@ class BT:
         print("bt_search finished")
         self.print_stats()
 
-    def bt_recurse(self, propagator, var_ord, val_ord, level):
+    def bt_recurse(self, propagator, var_ord, val_ord, level): # Recursively BT search for a solution to the CSP
         '''Return true if found solution. False if still need to search.
            If top level returns false--> no solution'''
 
