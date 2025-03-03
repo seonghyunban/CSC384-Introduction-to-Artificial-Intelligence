@@ -80,15 +80,19 @@ def w_eq_sum_x_y_z(values):
 # TEST FUNCTIONS
 #######################################
 def example_csp_test(propagator, name=""):
+    
+    # Initialize 4 variables with (name, domain) pairs
     x = cspbase.Variable('X', [1, 2, 3])
     y = cspbase.Variable('Y', [1, 2, 3])
     z = cspbase.Variable('Z', [1, 2, 3])
     w = cspbase.Variable('W', [1, 2, 3, 4])
 
+    # Define a constraint checker that w == x + y + z
     c1 = cspbase.Constraint('C1', [x, y, z])
     # c1 is constraint x == y + z. Below are all of the satisfying tuples
     c1.add_satisfying_tuples([[2, 1, 1], [3, 1, 2], [3, 2, 1]])
 
+    # c2 is constraint w == x + y + z.
     c2 = cspbase.Constraint('C2', [w, x, y, z])
     # c2 is constraint w == x + y + z.
     var_doms = []
@@ -102,19 +106,28 @@ def example_csp_test(propagator, name=""):
 
     c2.add_satisfying_tuples(sat_tuples)
 
+    # Create a CSP object with the variables and constraints
     simple_csp = cspbase.CSP("SimpleEqs", [x, y, z, w])
     simple_csp.add_constraint(c1)
     simple_csp.add_constraint(c2)
 
+    # Instantiate a backtracking object with the CSP
     btracker = cspbase.BT(simple_csp)
     # btracker.trace_on()
 
+    # Set timeout after 60 sec and run the search
     set_timeout(TIMEOUT)
     btracker.bt_search(propagator)
+    
+    # Get the current domains of the variables
     curr_vars = simple_csp.get_all_vars()
-    answer = [[2], [1], [1], [4]]
     var_vals = [x.cur_domain() for x in curr_vars]
+    
+    # This is the answer
+    answer = [[2], [1], [1], [4]]
     reset_timeout()
+    
+    # Check if the variable domains match the expected results
     if var_vals != answer:
         details = "Failed while testing a propagator (%s): variable domains don't match expected results" % name
         return 0, details, 1
