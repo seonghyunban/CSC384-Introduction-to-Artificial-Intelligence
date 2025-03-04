@@ -58,7 +58,7 @@
 
          for gac we initialize the GAC queue with all constraints containing V.
 		 
-		 
+
 var_ordering == a function with the following template
     var_ordering(csp)
         ==> returns Variable 
@@ -70,7 +70,6 @@ var_ordering == a function with the following template
     var_ordering returns the next Variable to be assigned, as per the definition
     of the heuristic it implements.
    '''
-
 
 def prop_BT(csp, newVar=None):
     '''Do plain backtracking propagation. That is, do no 
@@ -91,25 +90,113 @@ def prop_BT(csp, newVar=None):
                 vals.append(var.get_assigned_value()) # Get the assigned value of those assigned variables.
             if not c.check(vals): # And check if they satisfy the constraint.
                 return False, []
+            
     return True, []
 
 def prop_FC(csp, newVar=None):
     '''Do forward checking. That is check constraints with
        only one uninstantiated variable. Remember to keep
        track of all pruned variable,value pairs and return '''
-    #IMPLEMENT
-    return False, []
+
+    pruned = []
+
+    # At the root level, we check all unary constraints.
+    if not newVar:
+        for c in csp.get_all_cons():
+            if len(c.get_scope()) == 1 and c.get_unasgn_vars(): # Find unary constraints that has not yet been assigned.
+                
+                unary_var = c.get_unasgn_vars()[0] # Get the unassigned variable in the scope of the constraint.
+                for val in unary_var.cur_domain():
+                    if not c.check([val]):
+                        unary_var.prune_value(val)
+                        pruned.append((unary_var, val))
+                
+                if unary_var.cur_domain_size() == 0: # When we reach DWO, we return False and pruned values (for domain restore).
+                    return False, pruned
+
+    # At the child level, we need to check all the constraints that is related to the newly assigned variable.
+    else:
+        for c in csp.get_cons_with_var(newVar):
+            if c.get_n_unasgn() == 1: # If only one variables is not assigned for the constraint.
+                
+                unassigned_var = c.get_unasgn_vars()[0] # Get the unassigned variable in the scope of the constraint.
+                scope = c.get_scope()
+                
+                for val in unassigned_var.cur_domain(): # For each value in the domain of the selected variable.
+                    
+                    # Create the list val of potential assignment.
+                    vals = []
+                    for var in scope:
+                        if var.is_assigned():
+                            vals.append(var.get_assigned_value()) 
+                        else:
+                            vals.append(val)
+                    
+                    # Check if the potential assignment is valid and prune the value from the domain if it is not.
+                    if not c.check(vals):
+                        unassigned_var.prune_value(val)
+                        pruned.append((unassigned_var, val))
+                
+                if unassigned_var.cur_domain_size() == 0: # When we reach DWO, we return False and pruned values (for domain restore).
+                    return False, pruned
+
+    return True, pruned
+
 
 def prop_GAC(csp, newVar=None):
     '''Do GAC propagation. If newVar is None we do initial GAC enforce 
-       processing all constraints. Otherwise we do GAC enforce with
-       constraints containing newVar on GAC Queue'''
-    #IMPLEMENT
-    return False, []
+    processing all constraints. Otherwise we do GAC enforce with
+    constraints containing newVar on GAC Queue'''
+    
+    # Initialize GAC Queue as specified
+    if newVar is None:
+        gac_queue = csp.get_all_cons()
+    else:
+        gac_queue = csp.get_cons_with_var(newVar)
+    
+    # Pruned variable list
+    pruned = []
+    
+    while gac_queue:
+        # Get a new queue
+        c = gac_queue[0]
+        gac_queue = gac_queue[1:]
+        
+        # For each (var-val) pair
+        for var in c.get_scope():
+            for val in var.cur_domain():
+                
+                # If the pair does not have support, prune it, append to pruned list
+                if not c.has_support(var, val):
+                    var.prune_value(val)
+                    pruned.append((var, val))
+                    
+                    # If DWO reached, reture false and pruned (for domain restore)
+                    if var.cur_domain_size() == 0:
+                        return False, pruned
+                    # Else, domain modified, and hence enqueue all the constrain associated with the scope of the vars.
+                    else:
+                        for domain_updated_var in c.get_scope():
+                            gac_queue.extend([con for con in csp.get_cons_with_var(domain_updated_var) if con not in gac_queue])
 
-
+    return True, pruned
 
 def ord_mrv(csp):
     ''' return variable according to the Minimum Remaining Values heuristic '''
     #IMPLEMENT
-    return False, []
+    
+    # Get all unassigned variables.
+    unassigned_vars = csp.get_unasgn_vars()
+    
+    # Declare variables for minimum remaining domain size variable.
+    min_size = 0
+    min_var = None
+    
+    # Find minimum
+    for var in unassigned_vars:
+        curr_size = var.cur_domain_size()
+        if curr_size < min_size:
+            curr_size = min_size
+            min_var = var
+    
+    return min_var
