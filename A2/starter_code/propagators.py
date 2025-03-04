@@ -99,6 +99,7 @@ def prop_FC(csp, newVar=None):
        track of all pruned variable,value pairs and return '''
 
     pruned = []
+    DWO = False
 
     # At the root level, we check all unary constraints.
     if not newVar:
@@ -112,7 +113,7 @@ def prop_FC(csp, newVar=None):
                         pruned.append((unary_var, val))
                 
                 if unary_var.cur_domain_size() == 0: # When we reach DWO, we return False and pruned values (for domain restore).
-                    return False, pruned
+                    DWO = True
 
     # At the child level, we need to check all the constraints that is related to the newly assigned variable.
     else:
@@ -138,9 +139,9 @@ def prop_FC(csp, newVar=None):
                         pruned.append((unassigned_var, val))
                 
                 if unassigned_var.cur_domain_size() == 0: # When we reach DWO, we return False and pruned values (for domain restore).
-                    return False, pruned
+                    DWO = True
 
-    return True, pruned
+    return not DWO, pruned
 
 
 def prop_GAC(csp, newVar=None):

@@ -113,7 +113,7 @@ def example_csp_test(propagator, name=""):
 
     # Instantiate a backtracking object with the CSP
     btracker = cspbase.BT(simple_csp)
-    # btracker.trace_on()
+    btracker.trace_on()
 
     # Set timeout after 60 sec and run the search
     set_timeout(TIMEOUT)

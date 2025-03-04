@@ -54,20 +54,33 @@ import itertools
 # Futogrid Functions
 ###################################################################################################
 def cell_of(futo_grid, r, c):
-    return futo_grid[2 * r - 1, 2 * c - 1]
+    return futo_grid[2 * r][c]
 
 def generate_dom(n):
     return [i + 1 for i in range(n)]
 
 def futoshiki_size(futo_grid):
-    return (len(futo_grid) + 1) // 2
+    return (len(futo_grid))
 
 
 ###################################################################################################
 # Variable Functions
 ###################################################################################################
-def generate_vars(n):
-    return [[cspbase.Variable(f"C{i}{j}", generate_dom(n)) for j in range(n)] for i in range(n)]
+def generate_vars(n, futo_grid):
+    
+    vars = []
+    
+    for i in range(n):
+        row = []
+        for j in range(n):
+            cell = cell_of(futo_grid, i, j)
+            if cell != 0:
+                row.append(cspbase.Variable(f"C{i}{j}", [cell]))
+            else:
+                row.append(cspbase.Variable(f"C{i}{j}", generate_dom(n)))
+        vars.append(row)
+                        
+    return vars
     
 def flatten_vars(nested_vars):
     vars = []
@@ -79,24 +92,78 @@ def flatten_vars(nested_vars):
 ###################################################################################################
 # Constraint Functions
 ###################################################################################################
-def generate_not_equal_constraint(var_pair):
-    con = cspbase.Constraint(f"NotEq({var_pair[0].name},{var_pair[1].name})", [var_pair[0], var_pair[1]])
-    con.add_satisfying_tuples([(v1, v2) for (v1, v2) in itertools.product(var_pair[0].domain, var_pair[1].domain) if v1 != v2])
-    return con
+def binary_not_equal_constraint(row):
+    
+    cons = []
+    for var_pair in itertools.combinations(row, 2):
+        con = cspbase.Constraint(f"NotEq({var_pair[0].name},{var_pair[1].name})", [var_pair[0], var_pair[1]])
+        con.add_satisfying_tuples([(v1, v2) for (v1, v2) in itertools.product(var_pair[0].domain(), var_pair[1].domain()) if v1 != v2])
+        cons.append(con)
+        
+    return cons
 
-def binary_not_equal_constraints(n, vars):
+
+def generate_binary_not_equal_constraints(n, vars):
     
     cons = []
     for row in vars:
-        for pair in itertools.combinations(row, 2):
-            cons.append(generate_not_equal_constraint(pair))
+        cons.extend(binary_not_equal_constraint(row))
             
-    for i in range(len(vars)):
-        col = [vars[j][i] for j in range(len(vars))]
-        for pair in itertools.combinations(col, 2):
-            cons.append(generate_not_equal_constraint(pair))
+    for i in range(n):
+        col = [vars[j][i] for j in range(n)]
+        cons.extend(binary_not_equal_constraint(col))
     
-    return cons        
+    return cons
+
+
+def all_diff_constraint(n, seq_type, pos, sequence):
+    
+    con = cspbase.Constraint(f"AllDiff({seq_type}{pos})", sequence)
+    con.add_satisfying_tuples([tup for tup in itertools.product(*(var.domain() for var in sequence)) if len(set(tup)) == len(tup)])
+    return con
+
+
+def generate_all_diff_constraint(n, vars):
+    
+    cons = []
+    for r in range(n):
+        row = vars[r]
+        cons.append(all_diff_constraint(n, "R", r, row))
+            
+    for c in range(n):
+        col = [vars[j][c] for j in range(n)]
+        cons.append(all_diff_constraint(n, "C", c, col))
+    
+    return cons
+
+
+def inequality_constraint(type, var_left, var_right):
+    
+    if type == ">":
+        con = cspbase.Constraint(f"GT({var_left.name}{var_right.name})", [var_left, var_right])
+        con.add_satisfying_tuples([(v1, v2) for (v1, v2) in itertools.product(var_left.domain(), var_right.domain()) if v1 > v2])
+
+    else:
+        con = cspbase.Constraint(f"LT({var_left.name}{var_right.name})", [var_left, var_right])
+        con.add_satisfying_tuples([(v1, v2) for (v1, v2) in itertools.product(var_left.domain(), var_right.domain()) if v1 < v2])
+    
+    return con
+
+
+def generate_inequality_constraints(n, futogrid, vars):
+    
+    cons = []
+    for row in range(n):
+        for col in range(n - 1):
+            type = futogrid[row][2 * col + 1]
+            if type in [">", "<"]:
+                var_left = vars[row][col]
+                var_right = vars[row][col + 1]
+                cons.append(inequality_constraint(type, var_left, var_right))
+                
+    return cons
+        
+    
 
 
 ###################################################################################################
@@ -116,20 +183,26 @@ def generate_csp(n, vars, cons):
     return csp
     
 
-
 ###################################################################################################
 # Futoshiki Models
 ###################################################################################################
 def futoshiki_csp_model_1(futo_grid):
     n = futoshiki_size(futo_grid)
     
-    vars = generate_vars(n)
-    cons = binary_not_equal_constraints(n, vars)
+    vars = generate_vars(n, futo_grid)
+    cons = generate_binary_not_equal_constraints(n, vars)
+    cons.extend(generate_inequality_constraints(n, futo_grid, vars))
     csp = generate_csp(n, vars, cons)
     
     return csp, vars
 
 
 def futoshiki_csp_model_2(futo_grid):
-    ##IMPLEMENT
-    pass
+    n = futoshiki_size(futo_grid)
+    
+    vars = generate_vars(n, futo_grid)
+    cons = generate_all_diff_constraint(n, vars)
+    cons.extend(generate_inequality_constraints(n, futo_grid, vars))
+    csp = generate_csp(n, vars, cons)
+    
+    return csp, vars
