@@ -54,7 +54,7 @@ import itertools
 # Futogrid Functions
 ###################################################################################################
 def cell_of(futo_grid, r, c):
-    return futo_grid[2 * r][c]
+    return futo_grid[r][2 * c]
 
 def generate_dom(n):
     return [i + 1 for i in range(n)]

@@ -101,45 +101,34 @@ def prop_FC(csp, newVar=None):
     pruned = []
     DWO = False
 
-    # At the root level, we check all unary constraints.
-    if not newVar:
-        for c in csp.get_all_cons():
-            if len(c.get_scope()) == 1 and c.get_unasgn_vars(): # Find unary constraints that has not yet been assigned.
-                
-                unary_var = c.get_unasgn_vars()[0] # Get the unassigned variable in the scope of the constraint.
-                for val in unary_var.cur_domain():
-                    if not c.check([val]):
-                        unary_var.prune_value(val)
-                        pruned.append((unary_var, val))
-                
-                if unary_var.cur_domain_size() == 0: # When we reach DWO, we return False and pruned values (for domain restore).
-                    DWO = True
-
-    # At the child level, we need to check all the constraints that is related to the newly assigned variable.
+    if newVar is None:
+        cons = csp.get_all_cons()
     else:
-        for c in csp.get_cons_with_var(newVar):
-            if c.get_n_unasgn() == 1: # If only one variables is not assigned for the constraint.
+        cons = csp.get_cons_with_var(newVar)
+
+    for c in cons:
+        if c.get_n_unasgn() == 1: # If only one variables is not assigned for the constraint.
+            
+            unassigned_var = c.get_unasgn_vars()[0] # Get the unassigned variable in the scope of the constraint.
+            scope = c.get_scope()
+            
+            for val in unassigned_var.cur_domain(): # For each value in the domain of the selected variable.
                 
-                unassigned_var = c.get_unasgn_vars()[0] # Get the unassigned variable in the scope of the constraint.
-                scope = c.get_scope()
+                # Create the list val of potential assignment.
+                vals = []
+                for var in scope:
+                    if var.is_assigned():
+                        vals.append(var.get_assigned_value()) 
+                    else:
+                        vals.append(val)
                 
-                for val in unassigned_var.cur_domain(): # For each value in the domain of the selected variable.
-                    
-                    # Create the list val of potential assignment.
-                    vals = []
-                    for var in scope:
-                        if var.is_assigned():
-                            vals.append(var.get_assigned_value()) 
-                        else:
-                            vals.append(val)
-                    
-                    # Check if the potential assignment is valid and prune the value from the domain if it is not.
-                    if not c.check(vals):
-                        unassigned_var.prune_value(val)
-                        pruned.append((unassigned_var, val))
-                
-                if unassigned_var.cur_domain_size() == 0: # When we reach DWO, we return False and pruned values (for domain restore).
-                    DWO = True
+                # Check if the potential assignment is valid and prune the value from the domain if it is not.
+                if not c.check(vals):
+                    unassigned_var.prune_value(val)
+                    pruned.append((unassigned_var, val))
+            
+            if unassigned_var.cur_domain_size() == 0: # When we reach DWO, we return False and pruned values (for domain restore).
+                DWO = True
 
     return not DWO, pruned
 
