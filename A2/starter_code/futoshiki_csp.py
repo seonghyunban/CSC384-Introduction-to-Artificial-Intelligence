@@ -50,9 +50,85 @@ import cspbase
 import itertools
 
 
+###################################################################################################
+# Futogrid Functions
+###################################################################################################
+def cell_of(futo_grid, r, c):
+    return futo_grid[2 * r - 1, 2 * c - 1]
+
+def generate_dom(n):
+    return [i + 1 for i in range(n)]
+
+def futoshiki_size(futo_grid):
+    return (len(futo_grid) + 1) // 2
+
+
+###################################################################################################
+# Variable Functions
+###################################################################################################
+def generate_vars(n):
+    return [[cspbase.Variable(f"C{i}{j}", generate_dom(n)) for j in range(n)] for i in range(n)]
+    
+def flatten_vars(nested_vars):
+    vars = []
+    for row in nested_vars:
+        vars.extend(row)
+    return vars
+
+
+###################################################################################################
+# Constraint Functions
+###################################################################################################
+def generate_not_equal_constraint(var_pair):
+    con = cspbase.Constraint(f"NotEq({var_pair[0].name},{var_pair[1].name})", [var_pair[0], var_pair[1]])
+    con.add_satisfying_tuples([(v1, v2) for (v1, v2) in itertools.product(var_pair[0].domain, var_pair[1].domain) if v1 != v2])
+    return con
+
+def binary_not_equal_constraints(n, vars):
+    
+    cons = []
+    for row in vars:
+        for pair in itertools.combinations(row, 2):
+            cons.append(generate_not_equal_constraint(pair))
+            
+    for i in range(len(vars)):
+        col = [vars[j][i] for j in range(len(vars))]
+        for pair in itertools.combinations(col, 2):
+            cons.append(generate_not_equal_constraint(pair))
+    
+    return cons        
+
+
+###################################################################################################
+# CSP Functions
+###################################################################################################
+def generate_csp(n, vars, cons):
+    
+    csp = cspbase.CSP(f"{n}-Futoshiki")
+    
+    for i in range(n):
+        for j in range(n):
+            csp.add_var(vars[i][j])
+    
+    for con in cons:
+        csp.add_constraint(con)
+    
+    return csp
+    
+
+
+###################################################################################################
+# Futoshiki Models
+###################################################################################################
 def futoshiki_csp_model_1(futo_grid):
-    ##IMPLEMENT
-    pass
+    n = futoshiki_size(futo_grid)
+    
+    vars = generate_vars(n)
+    cons = binary_not_equal_constraints(n, vars)
+    csp = generate_csp(n, vars, cons)
+    
+    return csp, vars
+
 
 def futoshiki_csp_model_2(futo_grid):
     ##IMPLEMENT

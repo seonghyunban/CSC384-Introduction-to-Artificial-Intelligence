@@ -181,6 +181,7 @@ def prop_GAC(csp, newVar=None):
 
     return True, pruned
 
+
 def ord_mrv(csp):
     ''' return variable according to the Minimum Remaining Values heuristic '''
     #IMPLEMENT
