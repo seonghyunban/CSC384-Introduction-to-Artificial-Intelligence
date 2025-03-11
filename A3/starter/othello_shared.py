@@ -63,7 +63,7 @@ def play_move(board, player, i, j): # Return a new board after player plays (i,j
         final.append(tuple(row))
     return tuple(final) 
 
-def get_score(board): # Return the score of the board.
+def get_score(board): # Return the score (p1c, p2c) of the board.
     p1_count = 0
     p2_count = 0
     for i in range(len(board)):

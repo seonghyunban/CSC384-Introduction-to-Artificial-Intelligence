@@ -21,7 +21,11 @@ def compute_utility(board, color):
     INPUT: a game state and the player that is in control
     OUTPUT: an integer that represents utility
     """
-    raise RuntimeError("Method not implemented") # Replace this line!
+    p1_count, p2_count = get_score(board)
+    if color == 1:
+        return p1_count - p2_count
+    else:
+        return p2_count - p1_count
 
 def compute_heuristic(board, color):
     # IMPLEMENT! 

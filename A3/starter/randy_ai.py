@@ -15,7 +15,7 @@ import time
 # You can also use the functions in othello_shared to write your AI 
 from othello_shared import find_lines, get_possible_moves
 
-def select_move(board, color):
+def select_move(board, color): # Return a random move (column,row).
     """
     Given a board and a player color, decide on a move. 
     The return value is a tuple of integers (i,j), where
@@ -31,7 +31,7 @@ def select_move(board, color):
     time.sleep(0.1) # Delay, so Randy doesn't look as simple as it really is.  
     return i,j 
 
-def run_ai():
+def run_ai(): # Establish communication with the game manager.
     """
     This function establishes communication with the game manager. 
     It first introduces itself and receives its color. 
