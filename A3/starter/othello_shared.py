@@ -6,7 +6,7 @@ building your AIs.
 Thanks to original author Daniel Bauer, Columbia University
 """
 
-def find_lines(board, i, j, player):
+def find_lines(board, i, j, player): # Return a list of lines that can be captured by player on the move(i, j).
     """
     Find all the uninterupted lines of stones that would be captured if player
     plays column i and row j. 
@@ -34,9 +34,8 @@ def find_lines(board, i, j, player):
         if found and line: 
             lines.append(line)
     return lines
-   
 
-def get_possible_moves(board, player):
+def get_possible_moves(board, player): # Return a list of all possible move (column,row).
     """
     Return a list of all possible (column,row) tuples that player can play on
     the current board. 
@@ -50,7 +49,7 @@ def get_possible_moves(board, player):
                     result.append((i,j))
     return result
 
-def play_move(board, player, i, j):
+def play_move(board, player, i, j): # Return a new board after player plays (i,j).
     new_board = []
     for row in board: 
         new_board.append(list(row[:]))
@@ -64,7 +63,7 @@ def play_move(board, player, i, j):
         final.append(tuple(row))
     return tuple(final) 
 
-def get_score(board):
+def get_score(board): # Return the score of the board.
     p1_count = 0
     p2_count = 0
     for i in range(len(board)):
