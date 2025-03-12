@@ -13,7 +13,7 @@ cache = {} # Use this for state caching
 
 def eprint(*args, **kwargs): #use this for debugging, to print to sterr
     print(*args, file=sys.stderr, **kwargs)
-    
+
 def compute_utility(board, color):
     # IMPLEMENT!
     """
@@ -27,6 +27,25 @@ def compute_utility(board, color):
     else:
         return p2_count - p1_count
 
+
+def corner_diff(board, color):
+    
+    top_left = board[0][0] == color
+    top_right = board[0][len(board) - 1] == color
+    bottom_left = board[len(board) - 1][0] == color
+    bottom_right = board[len(board) - 1][len(board) - 1] == color
+    
+    return top_left + top_right + bottom_left + bottom_right
+
+
+def len_diff(board, color):
+    
+    player_len = len(get_possible_moves(board, color))
+    opponent_len = len(get_possible_moves(board, 3 - color))
+    
+    return player_len - opponent_len
+
+
 def compute_heuristic(board, color):
     # IMPLEMENT! 
     """
@@ -34,9 +53,80 @@ def compute_heuristic(board, color):
     INPUT: a game state and the player that is in control
     OUTPUT: an integer that represents heuristic value
     """
-    raise RuntimeError("Method not implemented") # Replace this line!
+    return compute_utility(board, color) + 10 * corner_diff(board, color) + 2 * len_diff(board, color)
+
 
 ############ MINIMAX ###############################
+
+def base_case(board, color, moves, limit):
+    if not moves:
+        return (None, None), compute_utility(board, color)
+    if limit == 0:
+        return (None, None), compute_heuristic(board, color)
+    return False
+    
+
+def minimax_max_helper(board, color, limit, caching = 0):
+    
+    max_utility = -float('inf')
+    new_move = (None, None)
+    moves = get_possible_moves(board, color)
+    
+    basecase = base_case(board, color, moves, limit)
+    if basecase:
+        return basecase
+    
+    moves.sort(key = lambda x: compute_utility(play_move(board, color, x[0], x[1]), color), reverse = True)
+    for move in moves:
+        
+        new_board = play_move(board, color, move[0], move[1])
+        
+        if caching:
+            if new_board in cache:
+                utility = cache[new_board]
+            else:
+                utility = minimax_min_node(new_board, 3 - color, limit - 1, caching)
+                cache[new_board] = utility
+        else:
+            utility = minimax_min_node(new_board, 3 - color, limit - 1, caching)
+        
+        if utility > max_utility:
+            max_utility = utility
+            new_move = move
+            
+    return new_move, max_utility
+
+
+def minimax_min_helper(board, color, limit, caching = 0):
+    
+    min_utility = float('inf')
+    new_move = (None, None)
+    moves = get_possible_moves(board, color)
+    
+    basecase = base_case(board, color, moves, limit)
+    if basecase:
+        return basecase
+    
+    moves.sort(key=lambda x: compute_heuristic(play_move(board, color, x[0], x[1]), color))
+    for move in moves:
+        
+        new_board = play_move(board, color, move[0], move[1])
+        if caching:
+            if new_board in cache:
+                utility = cache[new_board]
+            else:
+                utility = minimax_max_node(new_board, 3 - color, limit - 1, caching)
+                cache[new_board] = utility
+        else:
+            utility = minimax_max_node(new_board, 3 - color, limit - 1, caching)
+        
+        if utility < min_utility:
+            min_utility = utility
+            new_move = move
+            
+    return new_move, min_utility
+
+
 def minimax_min_node(board, color, limit, caching = 0):
     # IMPLEMENT!
     """
@@ -48,7 +138,8 @@ def minimax_min_node(board, color, limit, caching = 0):
     # 3. If not, for each possible move, get the max utiltiy
     # 4. After checking every move, you can find the minimum utility
     # ...
-    raise RuntimeError("Method not implemented") # Replace this line!
+    
+    return minimax_min_helper(board, color, limit, caching)[1]
 
 
 def minimax_max_node(board, color, limit, caching = 0):
@@ -62,9 +153,10 @@ def minimax_max_node(board, color, limit, caching = 0):
     # 3. If not, for each possible move, get the min utiltiy
     # 4. After checking every move, you can find the maximum utility
     # ...
-    raise RuntimeError("Method not implemented") # Replace this line!
-
     
+    return minimax_max_helper(board, color, limit, caching)[1]
+
+
 def select_move_minimax(board, color, limit, caching = 0):
     # IMPLEMENT!
     """
@@ -78,23 +170,92 @@ def select_move_minimax(board, color, limit, caching = 0):
     INPUT: a game state, the player that is in control, the depth limit for the search, and a flag determining whether state caching is on or not
     OUTPUT: a tuple of integers (i,j) representing a move, where i is the column and j is the row on the board.
     """
-    raise RuntimeError("Method not implemented") # Replace this line!
+    
+    return minimax_max_helper(board, color, limit, caching)[0]
+                
 
 
 ############ ALPHA-BETA PRUNING #####################
+
+
+def alphabeta_max_helper(board, color, alpha, beta, limit, caching = 0):
+    
+    new_move = (None, None)
+    moves = get_possible_moves(board, color)
+    
+    basecase = base_case(board, color, moves, limit)
+    if basecase is not False:
+        return basecase
+    
+    moves.sort(key = lambda x: compute_utility(play_move(board, color, x[0], x[1]), color), reverse = True)
+    for move in moves:
+        
+        new_board = play_move(board, color, move[0], move[1])
+        if caching:
+            if new_board in cache:
+                utility = cache[new_board]
+            else:
+                utility = alphabeta_min_node(new_board, 3 - color, alpha, beta, limit - 1, caching)
+                cache[new_board] = utility
+        else:
+            utility = alphabeta_min_node(new_board, 3 - color, alpha, beta, limit - 1, caching)
+        
+        if utility > alpha:
+            alpha = utility
+            new_move = move
+        
+        if alpha >= beta:
+            return new_move, alpha
+            
+    return new_move, alpha
+
+
+def alphabeta_min_helper(board, color, alpha, beta, limit, caching = 0):
+    
+    new_move = (None, None)
+    moves = get_possible_moves(board, color)
+
+    basecase = base_case(board, color, moves, limit)
+    if basecase is not False:
+        return basecase
+
+    moves.sort(key = lambda x: compute_utility(play_move(board, color, x[0], x[1]), color))
+    for move in moves:
+        
+        new_board = play_move(board, color, move[0], move[1])
+        if caching:
+            if new_board in cache:
+                utility = cache[new_board]
+            else:
+                utility = alphabeta_max_node(new_board, 3 - color, alpha, beta, limit - 1, caching)
+                cache[new_board] = utility
+        else:
+            utility = alphabeta_max_node(new_board, 3 - color, alpha, beta, limit - 1, caching)
+        
+        if utility > beta:
+            beta = utility
+            new_move = move
+        
+        if beta >= alpha:
+            return new_move, beta
+        
+    return new_move, beta
+
+
 def alphabeta_min_node(board, color, alpha, beta, limit, caching = 0, ordering = 0):
     # IMPLEMENT!
     """
     A helper function for alpha-beta that finds the lowest possible utility (don't forget to utilize and update alpha and beta!)
     """
-    raise RuntimeError("Method not implemented") # Replace this line!
+    return alphabeta_min_helper(board, color, alpha, beta, limit, caching)[1]
 
 def alphabeta_max_node(board, color, alpha, beta, limit, caching = 0, ordering = 0):
     # IMPLEMENT!
     """
     A helper function for alpha-beta that finds the highest possible utility (don't forget to utilize and update alpha and beta!)
     """
-    raise RuntimeError("Method not implemented") # Replace this line!
+    return alphabeta_max_helper(board, color, alpha, beta, limit, caching)[1]
+    
 
 def select_move_alphabeta(board, color, limit = -1, caching = 0, ordering = 0):
     # IMPLEMENT!
@@ -111,7 +272,10 @@ def select_move_alphabeta(board, color, limit = -1, caching = 0, ordering = 0):
     INPUT: a game state, the player that is in control, the depth limit for the search, a flag determining whether state caching is on or not, a flag determining whether node ordering is on or not
     OUTPUT: a tuple of integers (i,j) representing a move, where i is the column and j is the row on the board.
     """
-    raise RuntimeError("Method not implemented") # Replace this line!
+    
+    return alphabeta_max_helper(board, color, -float('inf'), float('inf'), limit, caching)[0]
+
+    
 
 ####################################################
 def run_ai():
